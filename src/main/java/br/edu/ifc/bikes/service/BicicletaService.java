@@ -48,4 +48,21 @@ public class BicicletaService {
     public List<BicicletaResponseDTO> getAll() {
         return bicicletaRepository.findAll().stream().map(bicicletaMapper::toResponse).toList();
     }
+
+    @Transactional
+    public BicicletaResponseDTO updateStatus(String codigo, Bicicleta.Status status) {
+        Bicicleta bicicleta = bicicletaRepository.findByCodigo(codigo).orElseThrow(
+                () -> new EntityNotFoundException(String.format("Bicicleta com código '%s' não encontrada", codigo))
+        );
+        // A locação controla o ciclo de ALUGADA para evitar desencontro com o estado da reserva.
+        if (bicicleta.getStatus() == Bicicleta.Status.ALUGADA) {
+            throw new BicicletaConflictException("Não é possível alterar o status de uma bicicleta alugada");
+        }
+        // Apenas a criação da locação pode marcar a bicicleta como alugada.
+        if (status == Bicicleta.Status.ALUGADA) {
+            throw new BicicletaConflictException("O status ALUGADA só pode ser definido por uma locação");
+        }
+        bicicleta.setStatus(status);
+        return bicicletaMapper.toResponse(bicicletaRepository.saveAndFlush(bicicleta));
+    }
 }

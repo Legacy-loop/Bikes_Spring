@@ -1,9 +1,11 @@
 package br.edu.ifc.bikes.config;
 
 import br.edu.ifc.bikes.jwt.JwtAuthorizationFilter;
+import br.edu.ifc.bikes.jwt.JwtUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -37,6 +39,20 @@ public class SpringSecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/usuarios").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth").permitAll()
                         .anyRequest().authenticated()
+                ).exceptionHandling(exceptions -> exceptions
+                        // Sem credenciais a resposta deve ser 401; 403 fica reservado a perfis sem permissão.
+                        .authenticationEntryPoint((request, response, exception) -> {
+                            String authorization = request.getHeader(JwtUtils.JWT_AUTHORIZATION);
+                            boolean tokenValido = authorization != null
+                                    && authorization.startsWith(JwtUtils.JWT_BEARER)
+                                    && JwtUtils.isTokenValid(authorization);
+                            // Um JWT válido sem permissão é 403; ausência ou invalidade do token é 401.
+                            response.sendError(tokenValido
+                                    ? HttpServletResponse.SC_FORBIDDEN
+                                    : HttpServletResponse.SC_UNAUTHORIZED);
+                        })
+                        .accessDeniedHandler((request, response, exception) ->
+                                response.sendError(HttpServletResponse.SC_FORBIDDEN))
                 ).sessionManagement(
                         session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 ).addFilterBefore(

@@ -4,6 +4,7 @@ import br.edu.ifc.bikes.dto.BicicletaRequestDTO;
 import br.edu.ifc.bikes.dto.BicicletaResponseDTO;
 import br.edu.ifc.bikes.entity.Bicicleta;
 import br.edu.ifc.bikes.entity.Usuario;
+import br.edu.ifc.bikes.dto.BicicletaStatusDTO;
 import br.edu.ifc.bikes.jwt.JwtUtils;
 import br.edu.ifc.bikes.repository.UsuarioRepository;
 import br.edu.ifc.bikes.web.exception.ErrorMessage;
@@ -144,6 +145,58 @@ class BicicletaIT {
                 .bodyValue(new BicicletaRequestDTO("", "", null))
                 .exchange()
                 .expectStatus().isEqualTo(422);
+    }
+
+    @Test
+    void updateStatus_validStatusReturnsUpdatedBicycle() {
+        createBicycle("BIKE-STATUS");
+
+        BicicletaResponseDTO response = testClient.patch()
+                .uri("/api/v1/bicicletas/codigo/BIKE-STATUS/status")
+                .header("Authorization", adminAuthorization)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new BicicletaStatusDTO(Bicicleta.Status.MANUTENCAO))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BicicletaResponseDTO.class)
+                .returnResult().getResponseBody();
+
+        assertThat(response).isNotNull();
+        assertThat(response.status()).isEqualTo(Bicicleta.Status.MANUTENCAO);
+    }
+
+    @Test
+    void updateStatus_cannotSetRentedManually() {
+        createBicycle("BIKE-STATUS");
+        testClient.patch()
+                .uri("/api/v1/bicicletas/codigo/BIKE-STATUS/status")
+                .header("Authorization", adminAuthorization)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new BicicletaStatusDTO(Bicicleta.Status.ALUGADA))
+                .exchange()
+                .expectStatus().isEqualTo(409);
+    }
+
+    @Test
+    void updateStatus_unknownCodeReturnsNotFound() {
+        testClient.patch()
+                .uri("/api/v1/bicicletas/codigo/INEXISTENTE/status")
+                .header("Authorization", adminAuthorization)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new BicicletaStatusDTO(Bicicleta.Status.MANUTENCAO))
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void clientCannotUpdateStatus() {
+        testClient.patch()
+                .uri("/api/v1/bicicletas/codigo/BIKE-STATUS/status")
+                .header("Authorization", clienteAuthorization)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new BicicletaStatusDTO(Bicicleta.Status.MANUTENCAO))
+                .exchange()
+                .expectStatus().isForbidden();
     }
 
     private void createBicycle(String codigo) {

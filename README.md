@@ -142,6 +142,7 @@ Todas as operações de bicicleta exigem autenticação e perfil `ADMIN`. Cada b
 | `POST` | `/bicicletas` | ADMIN | Cadastra bicicleta |
 | `GET` | `/bicicletas/codigo/{codigo}` | ADMIN | Busca bicicleta pelo código |
 | `GET` | `/bicicletas` | ADMIN | Lista bicicletas |
+| `PATCH` | `/bicicletas/codigo/{codigo}/status` | ADMIN | Altera o status (exceto bicicleta alugada ou status `ALUGADA`) |
 
 Exemplo de cadastro:
 
@@ -153,7 +154,71 @@ Exemplo de cadastro:
 }
 ```
 
-O recurso permite cadastrar, localizar e listar bicicletas. A alteração do status e as locações ainda não fazem parte das funcionalidades implementadas.
+Para manutenção, envie `PATCH /bicicletas/codigo/BIKE-001/status`:
+
+```json
+{
+  "status": "MANUTENCAO"
+}
+```
+
+Uma bicicleta em `ALUGADA` não pode ter o status alterado manualmente, e o status `ALUGADA` só é definido pela solicitação de locação.
+
+### Locações e devoluções
+
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| `POST` | `/locacoes` | CLIENTE | Solicita a primeira bicicleta disponível |
+| `GET` | `/locacoes` | ADMIN | Lista todas as locações |
+| `POST` | `/locacoes/{id}/devolucao` | ADMIN | Registra a devolução no balcão |
+
+O cliente informa a data limite e os dados de cartão para a simulação. A bicicleta é escolhida automaticamente entre as que estão `DISPONIVEL`; não é possível escolher uma bicicleta específica. A solicitação altera a bicicleta para `ALUGADA` e cria a locação como `ATIVA`, na mesma transação. Não há locação simultânea ativa para a mesma bicicleta.
+
+Exemplo de `POST /locacoes`:
+
+```json
+{
+  "dataPrevistaDevolucao": "2027-01-15T18:00:00",
+  "numeroCartao": "4111111111111111",
+  "nomeTitular": "MARIA DA SILVA",
+  "validade": "12/29",
+  "cvv": "123"
+}
+```
+
+Os dados do cartão são validados, mas o pagamento é simulado: número, validade e CVV não são persistidos, retornados nem registrados pela API.
+
+Exemplo de resposta ao solicitar uma locação:
+
+```json
+{
+  "id": 1,
+  "nomeCliente": "Maria da Silva",
+  "codigoBicicleta": "BIKE-001",
+  "dataRetirada": "2026-11-24T08:00:00",
+  "dataPrevistaDevolucao": "2027-01-15T18:00:00",
+  "dataDevolucao": null,
+  "duracaoMinutos": null,
+  "valor": null,
+  "status": "ATIVA"
+}
+```
+
+Somente um ADMIN registra a devolução. O corpo usa `problema: false` quando a bicicleta não apresenta defeito ou `true` quando precisa de manutenção:
+
+```json
+{
+  "problema": false
+}
+```
+
+Ao devolver sem problema, a bicicleta volta para `DISPONIVEL`; com problema, passa a `MANUTENCAO`. A locação fica `FINALIZADA`, registra a duração real e recebe o valor calculado. A tarifa padrão configurada em `bikes.tarifa-hora` é R$ 10,00 por hora. Minutos são arredondados para cima em horas iniciadas e há cobrança mínima de uma hora; por isso, qualquer locação finalizada custa pelo menos a tarifa de uma hora.
+
+### Relatório com JasperReports
+
+O arquivo `src/main/resources/reports/locacoes.jrxml` é o template visual do relatório, equivalente à estrutura que seria montada no Jaspersoft Studio: título, emissão, cabeçalho, linhas de detalhe, total e paginação. Na inicialização, o JasperReports compila o `.jrxml` em um modelo reutilizável; a cada solicitação, a aplicação preenche esse modelo com as locações e exporta o resultado para PDF.
+
+ADMIN pode acessar `GET /api/v1/relatorios/locacoes` autenticado, ou abrir essa rota no Swagger. A resposta é um PDF inline chamado `relatorio-locacoes.pdf`.
 
 ## Validação e erros
 
@@ -167,4 +232,13 @@ Usuários, clientes e bicicletas registram data de criação, data da última mo
 
 ## Testes
 
-Os testes de integração cobrem cadastro e consulta de usuários, alteração de senha, cadastro e acesso a clientes, e cadastro, busca e controle de acesso a bicicletas. Eles usam a configuração de testes em `src/test/resources/application.properties`.
+Os testes de integração usam `WebTestClient`, banco H2 e os scripts SQL em `src/test/resources`. Cobrem usuários, clientes, bicicletas, alteração de status, locações, regras de devolução e geração/autorização do relatório PDF.
+
+## Roteiro de demonstração
+
+1. Criar um usuário CLIENTE pela API e autenticar em `POST /api/v1/auth`.
+2. Cadastrar os dados do cliente em `POST /api/v1/clientes`.
+3. Autenticar como ADMIN e cadastrar uma bicicleta `DISPONIVEL` em `POST /api/v1/bicicletas`.
+4. Voltar ao token CLIENTE e solicitar uma locação em `POST /api/v1/locacoes`; conferir que o sistema escolheu a bicicleta e ela ficou `ALUGADA`.
+5. Com ADMIN, registrar a devolução em `POST /api/v1/locacoes/{id}/devolucao`; demonstrar tanto o retorno a `DISPONIVEL` quanto a opção de enviar para manutenção.
+6. Gerar e abrir o PDF em `GET /api/v1/relatorios/locacoes`.

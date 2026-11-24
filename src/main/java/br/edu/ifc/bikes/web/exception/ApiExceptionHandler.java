@@ -5,6 +5,7 @@ import br.edu.ifc.bikes.exception.ClienteConflictException;
 import br.edu.ifc.bikes.exception.BicicletaConflictException;
 import br.edu.ifc.bikes.exception.PasswordInvalidException;
 import br.edu.ifc.bikes.exception.UsernameUniqueViolationException;
+import br.edu.ifc.bikes.exception.LocacaoConflictException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -55,6 +56,17 @@ public class ApiExceptionHandler {
     public ResponseEntity<ErrorMessage> bicicletaConflictException(
             BicicletaConflictException ex,
             HttpServletRequest request){
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new ErrorMessage(request, HttpStatus.CONFLICT, ex.getMessage()));
+    }
+
+    @ExceptionHandler(LocacaoConflictException.class)
+    public ResponseEntity<ErrorMessage> locacaoConflictException(
+            LocacaoConflictException ex,
+            HttpServletRequest request) {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)

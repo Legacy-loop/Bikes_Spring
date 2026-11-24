@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Template manual compatível com o formato JRXML do JasperReports 7. -->
+<jasperReport name="locacoes" language="java" pageWidth="842" pageHeight="595"
+              orientation="Landscape" columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="25" bottomMargin="25" whenNoDataType="AllSectionsNoDetail">
+    <!-- A emissão é recebida como parâmetro para registrar quando o documento foi gerado. -->
+    <parameter name="dataEmissao" class="java.util.Date"/>
+    <!-- Cada campo corresponde a uma propriedade JavaBean de LocacaoRelatorioDTO. -->
+    <field name="nomeCliente" class="java.lang.String"/>
+    <field name="codigoBicicleta" class="java.lang.String"/>
+    <field name="dataRetirada" class="java.lang.String"/>
+    <field name="dataDevolucao" class="java.lang.String"/>
+    <field name="duracao" class="java.lang.String"/>
+    <field name="status" class="java.lang.String"/>
+
+    <!-- O cabeçalho identifica o relatório e apresenta o horário de emissão. -->
+    <title height="64">
+        <element kind="staticText" x="0" y="0" width="782" height="30"
+                 fontSize="18.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+            <text><![CDATA[Relatório de Locações e Devoluções]]></text>
+        </element>
+        <element kind="textField" x="0" y="36" width="782" height="18"
+                 pattern="dd/MM/yyyy HH:mm" hTextAlign="Right" vTextAlign="Middle">
+            <expression><![CDATA[$P{dataEmissao}]]></expression>
+        </element>
+    </title>
+
+    <!-- Os títulos das colunas ficam separados da banda de detalhe. -->
+    <columnHeader height="25">
+        <element kind="staticText" mode="Opaque" x="0" y="0" width="130" height="25" backcolor="#E5E7EB" bold="true" vTextAlign="Middle"><text><![CDATA[Cliente]]></text></element>
+        <element kind="staticText" mode="Opaque" x="130" y="0" width="120" height="25" backcolor="#E5E7EB" bold="true" vTextAlign="Middle"><text><![CDATA[Código da bicicleta]]></text></element>
+        <element kind="staticText" mode="Opaque" x="250" y="0" width="145" height="25" backcolor="#E5E7EB" bold="true" vTextAlign="Middle"><text><![CDATA[Data de retirada]]></text></element>
+        <element kind="staticText" mode="Opaque" x="395" y="0" width="145" height="25" backcolor="#E5E7EB" bold="true" vTextAlign="Middle"><text><![CDATA[Data de devolução]]></text></element>
+        <element kind="staticText" mode="Opaque" x="540" y="0" width="100" height="25" backcolor="#E5E7EB" bold="true" vTextAlign="Middle"><text><![CDATA[Duração]]></text></element>
+        <element kind="staticText" mode="Opaque" x="640" y="0" width="142" height="25" backcolor="#E5E7EB" bold="true" vTextAlign="Middle"><text><![CDATA[Status]]></text></element>
+    </columnHeader>
+
+    <!-- Uma banda de detalhe é impressa para cada locação recebida pelo datasource. -->
+    <detail>
+        <band height="22">
+            <element kind="textField" x="0" y="0" width="130" height="22" vTextAlign="Middle"><expression><![CDATA[$F{nomeCliente}]]></expression></element>
+            <element kind="textField" x="130" y="0" width="120" height="22" vTextAlign="Middle"><expression><![CDATA[$F{codigoBicicleta}]]></expression></element>
+            <element kind="textField" x="250" y="0" width="145" height="22" vTextAlign="Middle"><expression><![CDATA[$F{dataRetirada}]]></expression></element>
+            <element kind="textField" x="395" y="0" width="145" height="22" vTextAlign="Middle"><expression><![CDATA[$F{dataDevolucao}]]></expression></element>
+            <element kind="textField" x="540" y="0" width="100" height="22" vTextAlign="Middle"><expression><![CDATA[$F{duracao}]]></expression></element>
+            <element kind="textField" x="640" y="0" width="142" height="22" vTextAlign="Middle"><expression><![CDATA[$F{status}]]></expression></element>
+        </band>
+    </detail>
+
+    <!-- A banda final informa quantas locações foram incluídas no documento. -->
+    <summary height="30">
+        <element kind="staticText" x="0" y="8" width="150" height="18" bold="true"><text><![CDATA[Total de locações:]]></text></element>
+        <element kind="textField" x="150" y="8" width="70" height="18"><expression><![CDATA[$V{REPORT_COUNT}]]></expression></element>
+    </summary>
+
+    <!-- O rodapé identifica a página atual e o total de páginas do PDF. -->
+    <pageFooter height="20">
+        <element kind="staticText" x="650" y="0" width="55" height="18"><text><![CDATA[Página]]></text></element>
+        <element kind="textField" x="705" y="0" width="25" height="18"><expression><![CDATA[$V{PAGE_NUMBER}]]></expression></element>
+        <element kind="staticText" x="730" y="0" width="22" height="18"><text><![CDATA[de]]></text></element>
+        <element kind="textField" evaluationTime="Report" x="752" y="0" width="30" height="18"><expression><![CDATA[$V{PAGE_NUMBER}]]></expression></element>
+    </pageFooter>
+</jasperReport>
